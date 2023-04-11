@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"runtime"
+	"strings"
 	"sync"
 
 	"golang.org/x/sync/semaphore"
@@ -58,7 +59,7 @@ func LoadBalancer(
 
 				if ok {
 
-					for _, v := range utils.splitWithBandWidth(val, Limit) {
+					for _, v := range splitWithBandWidth(val, Limit) {
 						outChannel <- v
 					}
 
