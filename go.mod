@@ -1,3 +1,3 @@
-module example.com/pipeline
+module github.com/hocnc/pipeline
 
 go 1.18
