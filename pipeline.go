@@ -74,29 +74,6 @@ func LoadBalancer(
 	return outChannel
 }
 
-func Producer(ctx context.Context, values []string, errChannel chan<- error) <-chan string {
-	outChannel := make(chan string)
-
-	go func() {
-		defer close(outChannel)
-
-		for _, value := range values {
-			if value == "\n" {
-				continue
-			}
-
-			// log.Println(value)
-			select {
-			case <-ctx.Done():
-				return
-			case outChannel <- value:
-			}
-		}
-	}()
-
-	return outChannel
-}
-
 func ANew[T any](
 	ctx context.Context,
 	anew func(context.Context, T) (T, bool),
@@ -156,57 +133,11 @@ func ANew[T any](
 	return outChannel
 }
 
-func EndDebug[T any](ctx context.Context, cancelFunc context.CancelFunc, values <-chan T, errors chan error) {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Print(ctx.Err().Error())
-			return
-		case err := <-errors:
-			if err != nil {
-				log.Println("error: ", err.Error())
-				close(errors)
-				cancelFunc()
-			}
-		case value, ok := <-values:
-			if ok {
-				log.Println(value)
-			} else {
-				log.Println("Done")
-				return
-			}
-		}
-	}
-}
-
-func End[T any](ctx context.Context, cancelFunc context.CancelFunc, values <-chan T, errors chan error) {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Print(ctx.Err().Error())
-			return
-		case err := <-errors:
-			if err != nil {
-				log.Println("error: ", err.Error())
-				close(errors)
-				cancelFunc()
-			}
-		case _, ok := <-values:
-			if ok {
-				log.Println("Scanning")
-			} else {
-				log.Println("Done")
-				return
-			}
-		}
-	}
-}
-
-func RunArr[In any, Out any](
+func RunToArr[In any, Out any](
 	ctx context.Context,
 	inChannel <-chan In,
 	errChannel chan<- error,
-	fns ...func(context.Context, In) ([]Out, error)) <-chan Out {
+	fns ...func(In) ([]Out, error)) <-chan Out {
 
 	sem := semaphore.NewWeighted(int64(Limit))
 
@@ -228,10 +159,10 @@ func RunArr[In any, Out any](
 							return
 						}
 
-						go func(ctx context.Context, val In, fn func(context.Context, In) ([]Out, error)) {
+						go func(val In, fn func(In) ([]Out, error)) {
 							defer sem.Release(1)
 
-							results, err := fn(ctx, val)
+							results, err := fn(val)
 							if err != nil {
 								errChannel <- err
 							} else {
@@ -240,7 +171,7 @@ func RunArr[In any, Out any](
 								}
 							}
 
-						}(ctx, val, fn)
+						}(val, fn)
 
 					}
 				} else {
@@ -258,7 +189,62 @@ func RunArr[In any, Out any](
 
 	return outChannel
 }
+
 func Run[In any, Out any](
+	ctx context.Context,
+	inChannel <-chan In,
+	errChannel chan<- error,
+	fns ...func(In) (Out, error)) <-chan Out {
+	sem := semaphore.NewWeighted(int64(Limit))
+
+	outChannel := make(chan Out)
+	go func() {
+		defer close(outChannel)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case val, ok := <-inChannel:
+
+				if ok {
+					for _, fn := range fns {
+
+						if err := sem.Acquire(ctx, 1); err != nil {
+							log.Printf("Failed to acquire semmaphore: %v", err)
+							return
+						}
+
+						go func(val In, fn func(In) (Out, error)) {
+							defer sem.Release(1)
+
+							result, err := fn(val)
+							if err != nil {
+								errChannel <- err
+							} else {
+								outChannel <- result
+							}
+
+						}(val, fn)
+
+					}
+				} else {
+					//Make sure all done
+					if err := sem.Acquire(ctx, int64(Limit)); err != nil {
+						log.Printf("Failed to acquire semaphore: %v", err)
+					}
+					return
+				}
+
+			}
+
+		}
+	}()
+
+	return outChannel
+}
+
+func RunWithContext[In any, Out any](
 	ctx context.Context,
 	inChannel <-chan In,
 	errChannel chan<- error,
