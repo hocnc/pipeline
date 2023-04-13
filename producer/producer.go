@@ -1,5 +1,7 @@
 package producer
 
+import "context"
+
 func Producer(ctx context.Context, values []string, errChannel chan<- error) <-chan string {
 	outChannel := make(chan string)
 
