@@ -1,8 +1,10 @@
-package pipeline
+package producer
 
 import (
 	"context"
 	"testing"
+
+	"github.com/hocnc/pipeline/end"
 )
 
 func TestGetPaths(t *testing.T) {
@@ -12,5 +14,5 @@ func TestGetPaths(t *testing.T) {
 	defer cancel()
 
 	filePaths := GetFilePaths(ctx, "samples", errChannel)
-	EndDebug(ctx, cancel, filePaths, errChannel)
+	end.EndDebug(ctx, cancel, filePaths, errChannel)
 }

@@ -1,8 +1,10 @@
-package pipeline
+package producer
 
 import (
 	"context"
 	"testing"
+
+	"github.com/hocnc/pipeline/end"
 )
 
 func TestGetStdin(t *testing.T) {
@@ -13,5 +15,5 @@ func TestGetStdin(t *testing.T) {
 	defer close(errChannel)
 
 	inputs := GetStdin(ctx, errChannel)
-	End(ctx, cancel, inputs, errChannel)
+	end.End(ctx, cancel, inputs, errChannel)
 }
