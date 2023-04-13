@@ -1,4 +1,4 @@
-package producer
+package stage
 
 import (
 	"context"
