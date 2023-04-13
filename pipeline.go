@@ -202,6 +202,62 @@ func End[T any](ctx context.Context, cancelFunc context.CancelFunc, values <-cha
 	}
 }
 
+func RunArr[In any, Out any](
+	ctx context.Context,
+	inChannel <-chan In,
+	errChannel chan<- error,
+	fns ...func(context.Context, In) ([]Out, error)) <-chan Out {
+
+	sem := semaphore.NewWeighted(int64(Limit))
+
+	outChannel := make(chan Out)
+	go func() {
+		defer close(outChannel)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case val, ok := <-inChannel:
+
+				if ok {
+					for _, fn := range fns {
+
+						if err := sem.Acquire(ctx, 1); err != nil {
+							log.Printf("Failed to acquire semmaphore: %v", err)
+							return
+						}
+
+						go func(ctx context.Context, val In, fn func(context.Context, In) ([]Out, error)) {
+							defer sem.Release(1)
+
+							results, err := fn(ctx, val)
+							if err != nil {
+								errChannel <- err
+							} else {
+								for _, result := range results {
+									outChannel <- result
+								}
+							}
+
+						}(ctx, val, fn)
+
+					}
+				} else {
+					//Make sure all done
+					if err := sem.Acquire(ctx, int64(Limit)); err != nil {
+						log.Printf("Failed to acquire semaphore: %v", err)
+					}
+					return
+				}
+
+			}
+
+		}
+	}()
+
+	return outChannel
+}
 func Run[In any, Out any](
 	ctx context.Context,
 	inChannel <-chan In,
