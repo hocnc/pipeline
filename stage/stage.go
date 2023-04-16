@@ -77,7 +77,6 @@ func ANew[T any](
 	anew func(context.Context, T) (T, bool),
 	insertDB func(context.Context, T) error,
 	notify func(context.Context, T) error,
-	isFinal bool,
 	inChannel <-chan T,
 	errChannel chan<- error) <-chan T {
 
@@ -103,9 +102,7 @@ func ANew[T any](
 					}
 
 					//Send to the next step
-					if !isFinal {
-						outChannel <- newResult
-					}
+					outChannel <- newResult
 
 					// //Insert into Database
 					err := insertDB(ctx, newResult)
