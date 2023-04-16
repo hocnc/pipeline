@@ -14,7 +14,7 @@ func GetStdin(ctx context.Context, errChannel chan<- error) <-chan string {
 
 		sc := bufio.NewScanner(os.Stdin)
 		for sc.Scan() {
-			input := sc.Text()
+			input := sc.Text() + "heelo"
 
 			select {
 			case <-ctx.Done():
