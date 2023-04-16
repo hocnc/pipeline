@@ -6,10 +6,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hocnc/pipeline"
 	"golang.org/x/sync/semaphore"
 )
 
-func splitWithBandWidth(result string, limit int) []string {
+func splitWithBandWidth(result string) []string {
 	var newResult []string
 	var tmp strings.Builder
 	i := 0
@@ -17,7 +18,7 @@ func splitWithBandWidth(result string, limit int) []string {
 	values := strings.Split(result, "\n")
 	n := len(values)
 
-	bandwidth := n / limit
+	bandwidth := n / pipeline.Limit
 	if bandwidth == 0 {
 		bandwidth = 1
 	}
@@ -56,7 +57,7 @@ func LoadBalancer(
 
 				if ok {
 
-					for _, v := range splitWithBandWidth(val, Limit) {
+					for _, v := range splitWithBandWidth(val, pipeline.Limit) {
 						outChannel <- v
 					}
 
@@ -136,7 +137,7 @@ func RunToArr[In any, Out any](
 	errChannel chan<- error,
 	fns ...func(In) ([]Out, error)) <-chan Out {
 
-	sem := semaphore.NewWeighted(int64(Limit))
+	sem := semaphore.NewWeighted(int64(pipeline.Limit))
 
 	outChannel := make(chan Out)
 	go func() {
@@ -173,7 +174,7 @@ func RunToArr[In any, Out any](
 					}
 				} else {
 					//Make sure all done
-					if err := sem.Acquire(ctx, int64(Limit)); err != nil {
+					if err := sem.Acquire(ctx, int64(pipeline.Limit)); err != nil {
 						log.Printf("Failed to acquire semaphore: %v", err)
 					}
 					return
@@ -192,7 +193,7 @@ func Run[In any, Out any](
 	inChannel <-chan In,
 	errChannel chan<- error,
 	fns ...func(In) (Out, error)) <-chan Out {
-	sem := semaphore.NewWeighted(int64(Limit))
+	sem := semaphore.NewWeighted(int64(pipeline.Limit))
 
 	outChannel := make(chan Out)
 	go func() {
@@ -227,7 +228,7 @@ func Run[In any, Out any](
 					}
 				} else {
 					//Make sure all done
-					if err := sem.Acquire(ctx, int64(Limit)); err != nil {
+					if err := sem.Acquire(ctx, int64(pipeline.Limit)); err != nil {
 						log.Printf("Failed to acquire semaphore: %v", err)
 					}
 					return
@@ -246,7 +247,7 @@ func RunWithContext[In any, Out any](
 	inChannel <-chan In,
 	errChannel chan<- error,
 	fns ...func(context.Context, In) (Out, error)) <-chan Out {
-	sem := semaphore.NewWeighted(int64(Limit))
+	sem := semaphore.NewWeighted(int64(pipeline.Limit))
 
 	outChannel := make(chan Out)
 	go func() {
@@ -281,7 +282,7 @@ func RunWithContext[In any, Out any](
 					}
 				} else {
 					//Make sure all done
-					if err := sem.Acquire(ctx, int64(Limit)); err != nil {
+					if err := sem.Acquire(ctx, int64(pipeline.Limit)); err != nil {
 						log.Printf("Failed to acquire semaphore: %v", err)
 					}
 					return
