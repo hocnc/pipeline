@@ -57,7 +57,7 @@ func LoadBalancer(
 
 				if ok {
 
-					for _, v := range splitWithBandWidth(val, pipeline.Limit) {
+					for _, v := range splitWithBandWidth(val) {
 						outChannel <- v
 					}
 
