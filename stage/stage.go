@@ -3,14 +3,11 @@ package stage
 import (
 	"context"
 	"log"
-	"runtime"
 	"strings"
 	"sync"
 
 	"golang.org/x/sync/semaphore"
 )
-
-var Limit = runtime.NumCPU()
 
 func splitWithBandWidth(result string, limit int) []string {
 	var newResult []string
