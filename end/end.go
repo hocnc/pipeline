@@ -2,6 +2,7 @@ package end
 
 import (
 	"context"
+	"fmt"
 	"log"
 )
 
@@ -19,9 +20,8 @@ func End(ctx context.Context, cancelFunc context.CancelFunc, values <-chan strin
 			}
 		case value, ok := <-values:
 			if ok {
-				log.Print(value)
+				fmt.Print(value)
 			} else {
-				log.Println("Done")
 				return
 			}
 		}
