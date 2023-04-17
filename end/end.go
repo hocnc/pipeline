@@ -20,7 +20,9 @@ func End(ctx context.Context, cancelFunc context.CancelFunc, values <-chan strin
 			}
 		case value, ok := <-values:
 			if ok {
-				fmt.Print(value)
+				if value != "" {
+					fmt.Print(value)
+				}
 			} else {
 				return
 			}
